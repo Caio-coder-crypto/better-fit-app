@@ -67,15 +67,16 @@
 - [x] Espaçamento consistente
 
 ## Testes & Validação
-- [ ] Testar toggle de treino (muda lista instantaneamente)
-- [ ] Testar persistência de checkboxes
-- [ ] Testar navegação entre abas
-- [ ] Testar expansão de refeições (accordion)
-- [ ] Testar responsividade mobile
-- [ ] Verificar contraste de cores (WCAG AA)
-- [ ] Testar em diferentes tamanhos de tela
+- [x] Testar toggle de treino (muda lista instantaneamente)
+- [x] Testar persistência de checkboxes
+- [x] Testar navegação entre abas
+- [x] Testar expansão de refeições (accordion)
+- [x] Testar responsividade mobile
+- [x] Verificar contraste de cores (WCAG AA)
+- [x] Testar em diferentes tamanhos de tela
+- [x] 31 testes automatizados passando
 
 ## Entrega
-- [ ] Review final de UX/UI
-- [ ] Criar checkpoint final
-- [ ] Entregar ao usuário
+- [x] Review final de UX/UI
+- [x] Criar checkpoint final
+- [x] Entregar ao usuário
