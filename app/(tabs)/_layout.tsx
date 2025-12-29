@@ -31,8 +31,29 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: "Início",
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="workouts"
+        options={{
+          title: "Treino",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="dumbbell" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="diet"
+        options={{
+          title: "Dieta",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="utensils" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="mind"
+        options={{
+          title: "Mente",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="brain" color={color} />,
         }}
       />
     </Tabs>
