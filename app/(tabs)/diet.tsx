@@ -4,24 +4,33 @@ import {
   View,
   Pressable,
   FlatList,
+  ActivityIndicator,
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
-import {
-  mealsByDay,
-  getDayLabel,
-  getDayShortLabel,
-  Meal,
-} from "@/lib/mock-data";
+import { useMeals } from "@/hooks/use-meals";
 import { useState } from "react";
+import type { Meal } from "@/lib/supabase";
+
+const DAYS = ["seg", "ter", "qua", "qui", "sex", "sab", "dom"];
+const DAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"];
+const DAY_FULL_LABELS = [
+  "Segunda",
+  "Terça",
+  "Quarta",
+  "Quinta",
+  "Sexta",
+  "Sábado",
+  "Domingo",
+];
 
 export default function DietScreen() {
   const [selectedDay, setSelectedDay] = useState(0); // 0 = Seg, 6 = Dom
-  const [expandedMealId, setExpandedMealId] = useState<string | null>(null);
+  const [expandedMealId, setExpandedMealId] = useState<number | null>(null);
 
-  const dayLabel = getDayLabel(selectedDay);
-  const meals = mealsByDay[dayLabel] || [];
+  const dayKey = DAYS[selectedDay];
+  const { meals, loading, error, refetch } = useMeals(dayKey);
 
-  const toggleMealExpand = (mealId: string) => {
+  const toggleMealExpand = (mealId: number) => {
     setExpandedMealId(expandedMealId === mealId ? null : mealId);
   };
 
@@ -56,14 +65,18 @@ export default function DietScreen() {
             <Text className="text-sm font-semibold text-foreground mb-2">
               Ingredientes:
             </Text>
-            {item.ingredients.map((ingredient, idx) => (
-              <View key={idx} className="flex-row items-center gap-2">
-                <Text className="text-primary font-bold">•</Text>
-                <Text className="text-sm text-foreground flex-1">
-                  {ingredient}
-                </Text>
-              </View>
-            ))}
+            {item.ingredients && item.ingredients.length > 0 ? (
+              item.ingredients.map((ingredient, idx) => (
+                <View key={idx} className="flex-row items-center gap-2">
+                  <Text className="text-primary font-bold">•</Text>
+                  <Text className="text-sm text-foreground flex-1">
+                    {ingredient}
+                  </Text>
+                </View>
+              ))
+            ) : (
+              <Text className="text-sm text-muted">Sem ingredientes listados</Text>
+            )}
           </View>
         )}
       </Pressable>
@@ -83,7 +96,7 @@ export default function DietScreen() {
               Sua Alimentação
             </Text>
             <Text className="text-sm text-muted">
-              Total do dia: {totalCalories} calorias
+              {DAY_FULL_LABELS[selectedDay]} • Total: {totalCalories} calorias
             </Text>
           </View>
 
@@ -112,7 +125,7 @@ export default function DietScreen() {
                           : "text-foreground"
                       }`}
                     >
-                      {getDayShortLabel(dayIndex)}
+                      {DAY_LABELS[dayIndex]}
                     </Text>
                   </Pressable>
                 );
@@ -124,18 +137,46 @@ export default function DietScreen() {
             />
           </View>
 
+          {/* Mensagem de Erro */}
+          {error && (
+            <View className="bg-red-50 rounded-2xl p-4 border border-red-200">
+              <Text className="text-red-700 text-sm font-semibold">
+                ⚠️ Erro ao carregar refeições: {error}
+              </Text>
+            </View>
+          )}
+
+          {/* Loading */}
+          {loading && (
+            <View className="items-center justify-center py-8">
+              <ActivityIndicator size="large" color="#ec4899" />
+              <Text className="text-muted text-sm mt-2">Carregando refeições...</Text>
+            </View>
+          )}
+
           {/* Lista de Refeições */}
-          <View className="gap-2">
-            <Text className="text-sm font-semibold text-foreground">
-              Refeições ({meals.length})
-            </Text>
-            <FlatList
-              data={meals}
-              renderItem={renderMealCard}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-            />
-          </View>
+          {!loading && meals.length > 0 && (
+            <View className="gap-2">
+              <Text className="text-sm font-semibold text-foreground">
+                Refeições ({meals.length})
+              </Text>
+              <FlatList
+                data={meals}
+                renderItem={renderMealCard}
+                keyExtractor={(item) => item.id.toString()}
+                scrollEnabled={false}
+              />
+            </View>
+          )}
+
+          {/* Sem refeições */}
+          {!loading && meals.length === 0 && !error && (
+            <View className="bg-yellow-50 rounded-2xl p-4 border border-yellow-200">
+              <Text className="text-yellow-700 text-sm font-semibold">
+                📭 Nenhuma refeição encontrada para este dia.
+              </Text>
+            </View>
+          )}
 
           {/* Dica Nutricional */}
           <View className="bg-orange-50 rounded-2xl p-4 border border-orange-200 mt-4">

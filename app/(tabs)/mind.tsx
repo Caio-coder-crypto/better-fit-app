@@ -4,42 +4,42 @@ import {
   View,
   Pressable,
   FlatList,
-  Image,
+  ActivityIndicator,
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
-import { audiosByCategory, Audio } from "@/lib/mock-data";
+import { useAudios } from "@/hooks/use-audios";
 import { useState } from "react";
+import type { Audio } from "@/lib/supabase";
 
 interface AudioCategory {
   key: string;
   label: string;
   emoji: string;
-  audios: Audio[];
 }
 
-export default function MindScreen() {
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+const CATEGORIES: AudioCategory[] = [
+  {
+    key: "treinar",
+    label: "Para ouvir indo treinar",
+    emoji: "🔥",
+  },
+  {
+    key: "ansiedade",
+    label: "Para acalmar a ansiedade",
+    emoji: "🧘",
+  },
+  {
+    key: "corpo",
+    label: "Aulas sobre o corpo",
+    emoji: "📚",
+  },
+];
 
-  const categories: AudioCategory[] = [
-    {
-      key: "treinar",
-      label: "Para ouvir indo treinar",
-      emoji: "🔥",
-      audios: audiosByCategory["treinar"] || [],
-    },
-    {
-      key: "ansiedade",
-      label: "Para acalmar a ansiedade",
-      emoji: "🧘",
-      audios: audiosByCategory["ansiedade"] || [],
-    },
-    {
-      key: "corpo",
-      label: "Aulas sobre o corpo",
-      emoji: "📚",
-      audios: audiosByCategory["corpo"] || [],
-    },
-  ];
+export default function MindScreen() {
+  const [playingAudioId, setPlayingAudioId] = useState<number | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("treinar");
+
+  const { audios, loading, error, refetch } = useAudios(selectedCategory);
 
   const renderAudioCard = ({ item }: { item: Audio }) => {
     const isPlaying = playingAudioId === item.id;
@@ -83,31 +83,6 @@ export default function MindScreen() {
     );
   };
 
-  const renderCategory = ({ item: category }: { item: AudioCategory }) => {
-    return (
-      <View className="mb-6">
-        {/* Header da Categoria */}
-        <View className="flex-row items-center gap-2 mb-3">
-          <Text className="text-2xl">{category.emoji}</Text>
-          <Text className="text-base font-semibold text-foreground flex-1">
-            {category.label}
-          </Text>
-          <Text className="text-xs text-muted bg-surface px-2 py-1 rounded-full">
-            {category.audios.length}
-          </Text>
-        </View>
-
-        {/* Lista de Áudios */}
-        <FlatList
-          data={category.audios}
-          renderItem={renderAudioCard}
-          keyExtractor={(item) => item.id}
-          scrollEnabled={false}
-        />
-      </View>
-    );
-  };
-
   return (
     <ScreenContainer className="bg-background">
       <ScrollView
@@ -121,25 +96,92 @@ export default function MindScreen() {
               Seu Espaço Zen
             </Text>
             <Text className="text-sm text-muted">
-              Cuide da sua mente e bem-estar
+              Cuide da sua mente enquanto cuida do corpo
             </Text>
           </View>
 
-          {/* Categorias de Áudio */}
-          <FlatList
-            data={categories}
-            renderItem={renderCategory}
-            keyExtractor={(item) => item.key}
-            scrollEnabled={false}
-          />
+          {/* Abas de Categorias */}
+          <View className="gap-2">
+            <FlatList
+              data={CATEGORIES}
+              renderItem={({ item: category }) => {
+                const isSelected = selectedCategory === category.key;
+                return (
+                  <Pressable
+                    onPress={() => setSelectedCategory(category.key)}
+                    className={`py-3 px-4 rounded-xl items-center justify-center active:opacity-70 mb-2 flex-row gap-2 ${
+                      isSelected
+                        ? "bg-primary"
+                        : "bg-surface border border-border"
+                    }`}
+                  >
+                    <Text className="text-lg">{category.emoji}</Text>
+                    <Text
+                      className={`text-sm font-semibold ${
+                        isSelected
+                          ? "text-white"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {category.label}
+                    </Text>
+                  </Pressable>
+                );
+              }}
+              keyExtractor={(item) => item.key}
+              scrollEnabled={false}
+            />
+          </View>
 
-          {/* Dica de Bem-estar */}
+          {/* Mensagem de Erro */}
+          {error && (
+            <View className="bg-red-50 rounded-2xl p-4 border border-red-200">
+              <Text className="text-red-700 text-sm font-semibold">
+                ⚠️ Erro ao carregar áudios: {error}
+              </Text>
+            </View>
+          )}
+
+          {/* Loading */}
+          {loading && (
+            <View className="items-center justify-center py-8">
+              <ActivityIndicator size="large" color="#ec4899" />
+              <Text className="text-muted text-sm mt-2">Carregando áudios...</Text>
+            </View>
+          )}
+
+          {/* Lista de Áudios */}
+          {!loading && audios.length > 0 && (
+            <View className="gap-2">
+              <Text className="text-sm font-semibold text-foreground">
+                Áudios ({audios.length})
+              </Text>
+              <FlatList
+                data={audios}
+                renderItem={renderAudioCard}
+                keyExtractor={(item) => item.id.toString()}
+                scrollEnabled={false}
+              />
+            </View>
+          )}
+
+          {/* Sem áudios */}
+          {!loading && audios.length === 0 && !error && (
+            <View className="bg-yellow-50 rounded-2xl p-4 border border-yellow-200">
+              <Text className="text-yellow-700 text-sm font-semibold">
+                📭 Nenhum áudio encontrado para esta categoria.
+              </Text>
+            </View>
+          )}
+
+          {/* Dica */}
           <View className="bg-purple-50 rounded-2xl p-4 border border-purple-200 mt-4">
             <Text className="text-sm font-semibold text-purple-900 mb-1">
-              ✨ Dica de Bem-estar
+              💜 Dica de Bem-estar
             </Text>
             <Text className="text-sm text-purple-800">
-              Reserve 10 minutos do seu dia para meditação. Sua mente agradece!
+              Dedique alguns minutos por dia para ouvir e relaxar. Sua mente
+              agradece!
             </Text>
           </View>
         </View>

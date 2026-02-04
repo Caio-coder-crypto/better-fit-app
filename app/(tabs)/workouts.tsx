@@ -1,12 +1,9 @@
-import { ScrollView, Text, View, Pressable, FlatList } from "react-native";
+import { ScrollView, Text, View, Pressable, FlatList, ActivityIndicator } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
-import {
-  exercisesAtHome,
-  exercisesAtGym,
-  Exercise,
-} from "@/lib/mock-data";
+import { useExercises } from "@/hooks/use-exercises";
 import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import type { Exercise } from "@/lib/supabase";
 
 type WorkoutLocation = "home" | "gym";
 
@@ -15,6 +12,8 @@ export default function WorkoutsScreen() {
   const [completedExercises, setCompletedExercises] = useState<Set<string>>(
     new Set()
   );
+
+  const { exercises, loading, error, refetch } = useExercises(location);
 
   // Carregar exercícios completados do AsyncStorage
   useEffect(() => {
@@ -43,15 +42,12 @@ export default function WorkoutsScreen() {
     }
   };
 
-  const exercises =
-    location === "home" ? exercisesAtHome : exercisesAtGym;
-
   const toggleExercise = (exerciseId: string) => {
     const updated = new Set(completedExercises);
-    if (updated.has(exerciseId)) {
-      updated.delete(exerciseId);
+    if (updated.has(exerciseId.toString())) {
+      updated.delete(exerciseId.toString());
     } else {
-      updated.add(exerciseId);
+      updated.add(exerciseId.toString());
     }
     setCompletedExercises(updated);
     saveCompleted(updated);
@@ -59,15 +55,16 @@ export default function WorkoutsScreen() {
 
   const completedCount = completedExercises.size;
   const totalCount = exercises.length;
-  const progressPercent = Math.round((completedCount / totalCount) * 100);
+  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   const renderExerciseCard = ({ item }: { item: Exercise }) => {
-    const isCompleted = completedExercises.has(item.id);
+    const exerciseId = item.id.toString();
+    const isCompleted = completedExercises.has(exerciseId);
 
     return (
       <View className="bg-surface rounded-2xl p-4 shadow-sm border border-border mb-3 flex-row items-center gap-3">
         <Pressable
-          onPress={() => toggleExercise(item.id)}
+          onPress={() => toggleExercise(exerciseId)}
           className={`w-6 h-6 rounded-md border-2 items-center justify-center ${
             isCompleted
               ? "bg-primary border-primary"
@@ -87,16 +84,18 @@ export default function WorkoutsScreen() {
                 : "text-foreground"
             }`}
           >
-            {item.name}
+            {item.title}
           </Text>
           <Text className="text-sm text-muted mt-1">
-            {item.sets} séries × {item.reps} reps
+            {item.description}
           </Text>
         </View>
 
-        <Pressable className="px-3 py-2 rounded-lg bg-primary active:opacity-70">
-          <Text className="text-xs font-semibold text-white">Ver</Text>
-        </Pressable>
+        {item.video_url && (
+          <Pressable className="px-3 py-2 rounded-lg bg-primary active:opacity-70">
+            <Text className="text-xs font-semibold text-white">Ver</Text>
+          </Pressable>
+        )}
       </View>
     );
   };
@@ -167,18 +166,46 @@ export default function WorkoutsScreen() {
             </Pressable>
           </View>
 
+          {/* Mensagem de Erro */}
+          {error && (
+            <View className="bg-red-50 rounded-2xl p-4 border border-red-200">
+              <Text className="text-red-700 text-sm font-semibold">
+                ⚠️ Erro ao carregar exercícios: {error}
+              </Text>
+            </View>
+          )}
+
+          {/* Loading */}
+          {loading && (
+            <View className="items-center justify-center py-8">
+              <ActivityIndicator size="large" color="#ec4899" />
+              <Text className="text-muted text-sm mt-2">Carregando exercícios...</Text>
+            </View>
+          )}
+
           {/* Lista de Exercícios */}
-          <View className="gap-2">
-            <Text className="text-sm font-semibold text-foreground">
-              Exercícios ({exercises.length})
-            </Text>
-            <FlatList
-              data={exercises}
-              renderItem={renderExerciseCard}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-            />
-          </View>
+          {!loading && exercises.length > 0 && (
+            <View className="gap-2">
+              <Text className="text-sm font-semibold text-foreground">
+                Exercícios ({exercises.length})
+              </Text>
+              <FlatList
+                data={exercises}
+                renderItem={renderExerciseCard}
+                keyExtractor={(item) => item.id.toString()}
+                scrollEnabled={false}
+              />
+            </View>
+          )}
+
+          {/* Sem exercícios */}
+          {!loading && exercises.length === 0 && !error && (
+            <View className="bg-yellow-50 rounded-2xl p-4 border border-yellow-200">
+              <Text className="text-yellow-700 text-sm font-semibold">
+                📭 Nenhum exercício encontrado para este tipo de treino.
+              </Text>
+            </View>
+          )}
 
           {/* Botão de Conclusão */}
           {completedCount === totalCount && totalCount > 0 && (
